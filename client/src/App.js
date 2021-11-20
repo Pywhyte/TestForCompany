@@ -1,70 +1,73 @@
-
-import { useEffect, useState} from 'react';
-import './App.css';
-import CurrService from './rout';
-import CurrenceList from './utils/CurrenceList';
-import Paginator from './utils/paginator';
+import { useEffect, useState, useMemo, useCallback } from "react";
+import "./App.css";
+import CurrService from "./CurrService";
+import CurrenceList from "./Components/CurrenceList";
+import Paginator from "./Components/paginator";
+import usePagination from "./hooks/usePagination";
 
 function App() {
-  const [currence, setCurrence] = useState([])
-  const [filter, setFilter] = useState("")
-  const [limit] = useState(20)
-  const [page, setPage] = useState(1)
-  
-  
+  const [currence, setCurrence] = useState([]);
+  const [appliedFilter, setAppliedFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [limit] = useState(20);
+  const [page, setPage, { paginate, nextPage, prevPage }] = usePagination(1);
 
-  async function fetch() {
-    const response = await CurrService.currencies(limit, page)
-    setCurrence([...currence, ...response])
+  const fetchData = useCallback(async ({ limit, page }) => {
+    const response = await CurrService.currencies(limit, page);
 
-  }
+    if (response) {
+      setCurrence(response);
+    }
+
+    console.error("no data");
+    return [];
+  }, []);
 
   useEffect(() => {
-    fetch(limit, page)
-  }, [])
+    fetchData({ limit, page });
+  }, [fetchData, limit, page]);
 
+  const list = useMemo(() => {
+    const lastIndex = page * limit;
+    const firstIndex = lastIndex - limit;
 
-  const lastIndex = page * limit
-  const firstIndex = lastIndex - limit
-  const currentCurriencies = currence.slice(firstIndex, lastIndex)
-  const filtered = currentCurriencies.filter(n=> n.name.toLowerCase().includes(filter))
-   
-  const searchHandler=()=>{
-    setFilter(filter)
-  }
-  
+    const filtered = (currence || []).filter((n) =>
+      n.name.toLowerCase().includes(appliedFilter)
+    );
 
-  const resetFilter =(e)=>{
-    setFilter("")
-  }
+    return filtered.slice(firstIndex, lastIndex);
+  }, [currence, appliedFilter, page, limit]);
 
-  const paginate = (pageNumber) => {
-    setPage(pageNumber)
-  }
+  const searchHandler = () => {
+    setAppliedFilter(search);
+    setPage(1);
+  };
 
-  const nextPage = () => {
-    setPage(prev => prev + 1)
-  }
-  const prevPage = () => {
-    setPage(prev => prev - 1)
-  }
+  const resetFilter = (e) => {
+    setSearch("");
+    setAppliedFilter("");
+    setPage(1);
+  };
+
   return (
     <div className="App">
-      
-      <input type="text"
-        value={filter}
-      placeholder="Search"
-      onChange={(e)=> setFilter(e.target.value)}
+      <input
+        type="text"
+        value={search}
+        placeholder="Search"
+        onChange={(e) => setSearch(e.target.value)}
       />
-      <button onClick={()=> searchHandler()}>search</button>
 
+      <button onClick={searchHandler}>search</button>
       <button onClick={resetFilter}>Reset Filter</button>
-      <CurrenceList currence={filtered} />
+
+      <CurrenceList currencies={list} />
       <Paginator
         limit={limit}
         totalLimit={currence.length}
         paginate={paginate}
       />
+
       <button onClick={prevPage}>prev page</button>
       <button onClick={nextPage}>next page</button>
     </div>

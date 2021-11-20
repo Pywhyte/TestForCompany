@@ -16,29 +16,46 @@ const filePath = "allCurrencies.json"
 app.use(express.static(__dirname + "/public"))
 app.use(cors)
 
-const writeFile = ()=>{
-    request(requestHTTP, (err, response, body)=>{
-        if(err) return res.status(500).send({message:err})
-        let data = JSON.stringify(body)
-        fs.writeFileSync("allCurrencies.json", data)
-    })
-}
-app.get("/api/currencies", function(req,res){
-    const content = fs.readFileSync(filePath,"utf8")
+const writeFile = () => {
+    try {
+        request(requestHTTP, (err, response, body) => {
+            if (err) return res.status(500).send({ message: err })
+            let data = JSON.stringify(body)
+            fs.writeFileSync("allCurrencies.json", data)
+        })
+        return new Promise((res, rej)=>{
+            setTimeout(()=> res("response"), 6000)
+        })
+        }catch(e) {
+            console.log(e)
+        }
+    }
+
+app.get("/api/currencies", function (req, res) {
+    const content = fs.readFileSync(filePath, "utf8")
     const currencies = JSON.parse(content)
-   return res.send(currencies)
+    return res.send(currencies)
 })
 
-const readFile =()=>{
-    
-    app.post("/api/currencies", jsonParser, function(req, res){
-        let data = fs.readFileSync(filePath, "utf8")
-        let currs = JSON.parse(data)
-        res.send(currs)
-    })
+
+const updateFile = async () => {
+    try {
+        app.post("/api/currencies", jsonParser, function (req, res) {
+            let data = fs.readFileSync(filePath, "utf8")
+            let currs = JSON.parse(data)
+            res.send(currs)
+        })
+        return new Promise((res, rej) => {
+            setTimeout(() => res("response"), 60000)
+        })
+    } catch (e) {
+        console.log(e)
+    }
 }
-setInterval(writeFile, 60000)
-setInterval(readFile, 60000)
-app.listen(port, host,()=>{
+
+updateFile()
+writeFile()
+
+app.listen(port, host, () => {
     console.log(`server start at ${port}`)
 })
